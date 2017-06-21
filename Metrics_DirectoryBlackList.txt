@@ -1,0 +1,7 @@
+packages
+temp
+obj
+release
+bin
+node_modules
+properties

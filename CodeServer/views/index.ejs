@@ -1,0 +1,13 @@
+﻿<% include header.ejs %>
+<% include config.ejs %>
+<table id="client_list">
+</table>
+<script>
+	var socket = io.connect("http://" + IP + ":7071");
+	socket.on("connect", function () { });
+	socket.on("refresh", function (data) {
+		document.getElementById("client_list").innerHTML = data.text;
+		document.getElementById("client_count").innerHTML = data.count;
+	});
+</script>
+<% include footer.ejs %>

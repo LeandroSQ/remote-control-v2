@@ -1,0 +1,6 @@
+.PHP
+.HTML
+.JS
+.CSS
+.CS
+.EJS

@@ -1,0 +1,234 @@
+﻿* {
+    margin: 0px;
+    padding: 0px;
+}
+
+body {
+    background: #263238;
+}
+
+header, .header, footer {
+    text-align: center;
+    background: #03a9f4;
+    color: #fefefe;
+    border-bottom: 1px solid #2196f3;
+    padding: 2% 0px;
+    font-family: 'Courgette', cursive;
+    cursor: pointer;
+}
+
+header {
+    font-family: 'Courgette', cursive;
+    text-shadow: 0px 1px 1px black;
+}
+
+footer {
+    border: none;
+    border-top: 1px solid #2196f3;
+    position: fixed;
+    bottom: 0px;
+    width: 100%;
+}
+
+section {
+    background: #fefefe;
+    border: 1px solid #2196f3;
+    width: 92%;
+    margin: auto;
+    margin-top: 5%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+    section {
+        width: 90%;
+    }
+}
+
+table td {
+    word-wrap: break-word;
+}
+
+table .header td {
+    padding: 20px;
+}
+
+table tr:not(.header) td {
+    text-align: center;
+    border: 1px solid #2196f3;
+}
+
+table tr:last-child td {
+    border-bottom: none;
+}
+
+table tr:not(.header):hover {
+    background-color: #93d2ff;
+    color: white !important;
+}
+
+table tr:not(.header) {
+    cursor: pointer;
+    color: #fefefe;
+    background-color: #52b7ff;
+    transition: 250ms;
+    font-family: monospace;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.middle {
+    overflow-y: hidden;
+    opacity: 1;
+    transition: 500ms;
+    transition-timing-function: linear;
+}
+
+    .middle div {
+        display: table;
+        margin: auto;
+        text-align: center;
+    }
+
+#code_output, #cmd_output {
+    max-height: 300px;
+    overflow: auto;
+    display: block;
+}
+
+#cap_img {
+    width: calc(100% - 10px);
+    margin-top: 5px;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+#explorer {
+    background: white;
+    border: 1px solid #ccc;
+    font-family: sans-serif;
+    font-size: 10pt;
+    text-align: left;
+    position: relative;
+    line-height: 20px;
+}
+
+#explorer span {
+    width: calc(100% - 45px);
+    padding: 2.5px;
+    cursor: pointer;
+    display: inline-block;
+}
+#explorer img {
+    max-height: 20px;
+    max-width: 20px;
+    vertical-align: middle;
+    transition: 1s;
+}
+#explorer span:hover {
+    background: linear-gradient(to right, #03a9f4, transparent);
+    color: white;    
+}
+#explorer span:hover img {
+    filter: grayscale(1);    
+}
+
+.delete {
+    right: 0px;
+    position: absolute;
+    user-select: none;
+    cursor: pointer;
+    font-family: cursive;
+    font-weight: 900;
+    color: white;
+    background: #03a9f4;
+    border-radius: 90%;
+    padding: 0px 5px;
+}
+
+.code {
+    background: white;
+    border: 1px solid #ccc;
+    display: inline-table;
+    color: #a9a9a9;
+    font-family: sans-serif;
+    font-size: 10pt;
+}
+
+.code_line {
+    padding: 5px;
+    width: 245px;
+    display: inline-block;
+    box-sizing: border-box;
+    text-align: justify;
+    word-wrap: break-word;
+    vertical-align: text-top;
+}
+
+#logs {
+    overflow: auto;
+    white-space: pre;
+}
+
+.input {
+    border: 1px solid #ccc;
+    padding: 5px;
+    outline-width: 1px;
+    outline-color: transparent;
+    transition: outline 500ms;
+    max-width: 300px;
+
+}
+
+::-webkit-input-placeholder {
+    color: #a9a9a9;
+    font-family: sans-serif;
+    font-size: 10pt;
+}
+
+.input:hover {
+    outline-color: #2196f3;
+    outline-style: ridge;
+}
+
+ul li {
+    list-style-type: none;
+}
+
+label.button {
+	padding: 5px 10px;
+}
+
+input[type="checkbox"] {
+	vertical-align: middle;
+}
+
+.button {
+    display: inline-block;
+    background-color: #03a9f4;
+    border: 1px solid #2196f3;
+    color: #FFFFFF;
+    text-align: center;
+    padding: 5px 20px;
+    transition: all 0.5s;
+    cursor: pointer;
+    margin: 5px;
+    box-sizing: border-box;
+    outline-width: 1px;
+    outline-color: transparent;
+}
+
+.button:disabled {
+	background-color: #ccc !important;
+	border-color: #a9a9a9 !important;
+}
+
+.button:hover {
+	border-color: transparent;
+	outline-color: #2196f3;
+	outline-style: ridge;
+}
